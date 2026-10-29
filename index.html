@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Track your cryptocurrency portfolio with real-time prices, sparkline charts, and profit/loss analysis. Supports 12+ cryptocurrencies.">
+    <title>Crypto Portfolio Tracker — Real-Time Prices & Analytics</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>₿</text></svg>">
+</head>
+
+<body>
+
+    <!-- ============ LIVE TICKER BAR ============ -->
+    <div class="ticker-bar" id="tickerBar">
+        <div class="ticker-track" id="tickerTrack">
+            <span class="ticker-item" style="color:var(--text-muted)">Loading live prices...</span>
+        </div>
+    </div>
+
+
+    <!-- ============ HEADER ============ -->
+    <header>
+        <div class="header-left">
+            <h1>₿ CryptoFolio</h1>
+            <p>Real-time portfolio tracking & market analytics</p>
+        </div>
+
+        <div class="header-right">
+            <div class="live-indicator">
+                <span class="live-dot"></span>
+                <span>Live</span>
+                <span class="countdown-badge" id="countdown">30s</span>
+            </div>
+
+            <button class="btn btn-ghost" onclick="refreshPrices()" id="refreshBtn">
+                ↻ Refresh
+            </button>
+
+            <button class="btn btn-ghost" onclick="exportPortfolio()" id="exportBtn" title="Export portfolio as JSON">
+                ⤓ Export
+            </button>
+        </div>
+    </header>
+
+
+    <!-- ============ MAIN ============ -->
+    <main>
+
+        <!-- SUMMARY CARDS -->
+        <section class="summary" id="summarySection">
+
+            <div class="glass-card">
+                <span class="card-icon">💰</span>
+                <div class="card-label">Total Investment</div>
+                <div class="card-value" id="totalInvestment">₹0</div>
+            </div>
+
+            <div class="glass-card">
+                <span class="card-icon">📈</span>
+                <div class="card-label">Current Value</div>
+                <div class="card-value" id="currentValue">₹0</div>
+            </div>
+
+            <div class="glass-card">
+                <span class="card-icon">💎</span>
+                <div class="card-label">Total Profit / Loss</div>
+                <div class="card-value" id="profitLoss">₹0</div>
+            </div>
+
+            <div class="glass-card">
+                <span class="card-icon">⚡</span>
+                <div class="card-label">Return</div>
+                <div class="card-value" id="profitPercent">0%</div>
+            </div>
+
+        </section>
+
+
+        <!-- ADD INVESTMENT -->
+        <section class="glass-card add-section" id="addSection">
+
+            <div class="section-header">
+                <h2 class="section-title"><span class="icon">➕</span> Add Investment</h2>
+            </div>
+
+            <form id="investmentForm" class="investment-form">
+
+                <div class="form-group">
+                    <label for="coin">Cryptocurrency</label>
+                    <select id="coin" class="form-select" required>
+                        <option value="bitcoin">Bitcoin (BTC)</option>
+                        <option value="ethereum">Ethereum (ETH)</option>
+                        <option value="solana">Solana (SOL)</option>
+                        <option value="binancecoin">BNB (BNB)</option>
+                        <option value="ripple">XRP (XRP)</option>
+                        <option value="cardano">Cardano (ADA)</option>
+                        <option value="dogecoin">Dogecoin (DOGE)</option>
+                        <option value="polkadot">Polkadot (DOT)</option>
+                        <option value="matic-network">Polygon (MATIC)</option>
+                        <option value="avalanche-2">Avalanche (AVAX)</option>
+                        <option value="chainlink">Chainlink (LINK)</option>
+                        <option value="shiba-inu">Shiba Inu (SHIB)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="quantity">Quantity</label>
+                    <input type="number" id="quantity" class="form-input" placeholder="e.g. 0.5" step="any" min="0"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="buyPrice">Buy Price (₹)</label>
+                    <input type="number" id="buyPrice" class="form-input" placeholder="e.g. 45000" step="any" min="0"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary" id="addInvestmentBtn">
+                        ＋ Add
+                    </button>
+                </div>
+
+            </form>
+
+        </section>
+
+
+        <!-- PORTFOLIO ALLOCATION -->
+        <section class="glass-card allocation-section" id="allocationSection" style="display:none;">
+
+            <div class="section-header">
+                <h2 class="section-title"><span class="icon">🍩</span> Portfolio Allocation</h2>
+            </div>
+
+            <div class="allocation-bar-container" id="allocationBar"></div>
+            <div class="allocation-legend" id="allocationLegend"></div>
+
+        </section>
+
+
+        <!-- HOLDINGS TABLE -->
+        <section class="glass-card table-section" id="tableSection">
+
+            <div class="section-header">
+                <h2 class="section-title"><span class="icon">📋</span> My Holdings</h2>
+            </div>
+
+            <div class="table-container">
+
+                <table id="holdingsTableEl">
+
+                    <thead>
+                        <tr>
+                            <th data-sort="coin" onclick="sortTable('coin')">
+                                Coin <span class="sort-arrow">▲</span>
+                            </th>
+                            <th data-sort="quantity" onclick="sortTable('quantity')">
+                                Qty <span class="sort-arrow">▲</span>
+                            </th>
+                            <th data-sort="buyPrice" onclick="sortTable('buyPrice')">
+                                Buy Price <span class="sort-arrow">▲</span>
+                            </th>
+                            <th data-sort="currentPrice" onclick="sortTable('currentPrice')">
+                                Current Price <span class="sort-arrow">▲</span>
+                            </th>
+                            <th data-sort="value" onclick="sortTable('value')">
+                                Value <span class="sort-arrow">▲</span>
+                            </th>
+                            <th data-sort="profit" onclick="sortTable('profit')">
+                                P/L <span class="sort-arrow">▲</span>
+                            </th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="holdingsTable">
+                    </tbody>
+
+                </table>
+
+                <div class="empty-state" id="emptyState">
+                    <div class="empty-icon">📭</div>
+                    <p>No investments yet. Add one above to get started!</p>
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- CRYPTO MARKET -->
+        <section class="glass-card market-section" id="marketSection">
+
+            <div class="section-header">
+                <h2 class="section-title"><span class="icon">🌐</span> Crypto Market</h2>
+
+                <div class="search-box">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="marketSearch" placeholder="Search coins..." oninput="filterMarket()">
+                </div>
+            </div>
+
+            <div id="marketData" class="market-grid">
+                <!-- Shimmer placeholders -->
+                <div class="shimmer shimmer-card"></div>
+                <div class="shimmer shimmer-card"></div>
+                <div class="shimmer shimmer-card"></div>
+                <div class="shimmer shimmer-card"></div>
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <!-- ============ FOOTER ============ -->
+    <footer>
+        <div class="footer-content">
+            <p>CryptoFolio — Real-Time Crypto Portfolio Tracker</p>
+            <div class="footer-links">
+                <a href="#">Powered by CoinGecko API</a>
+                <a href="#">Built with HTML, CSS & JavaScript</a>
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- ============ TOAST CONTAINER ============ -->
+    <div class="toast-container" id="toastContainer"></div>
+
+
+    <!-- ============ SCRIPT ============ -->
+    <script src="script.js"></script>
+
+</body>
+
+</html>
